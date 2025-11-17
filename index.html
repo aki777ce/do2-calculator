@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DO₂計算機 - 酸素供給量計算アプリ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 25px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 1.6em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 0.85em;
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #333;
+            font-weight: 600;
+            font-size: 1em;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="number"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .unit {
+            color: #666;
+            font-weight: 500;
+            min-width: 60px;
+        }
+
+        .normal-range {
+            font-size: 0.75em;
+            color: #999;
+            margin-top: 3px;
+        }
+
+
+        .result-container {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-container.show {
+            display: block;
+        }
+
+        .result-container.normal {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .result-container.yellow {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #333;
+        }
+
+        .result-container.red {
+            background: linear-gradient(135deg, #ff0000 0%, #ff4444 100%);
+            color: white;
+        }
+
+        .result-label {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .result-value {
+            font-size: 2.8em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .result-unit {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .alert-message {
+            margin-top: 10px;
+            font-size: 0.95em;
+            font-weight: 600;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .formula {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .formula-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .formula-text {
+            color: #666;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            font-size: 0.85em;
+        }
+
+        .disclaimer {
+            margin-top: 15px;
+            padding: 12px;
+            background: #fff3cd;
+            border-radius: 10px;
+            border-left: 4px solid #ffc107;
+            font-size: 0.75em;
+            color: #856404;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: #e0e0e0;
+            outline: none;
+            margin-top: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 5px;
+                align-items: flex-start;
+            }
+
+            .container {
+                padding: 15px;
+                margin: 5px 0;
+            }
+
+            h1 {
+                font-size: 1.4em;
+                margin-bottom: 3px;
+            }
+
+            .subtitle {
+                font-size: 0.75em;
+                margin-bottom: 15px;
+            }
+
+            .input-group {
+                margin-bottom: 12px;
+            }
+
+            label {
+                font-size: 0.9em;
+                margin-bottom: 4px;
+            }
+
+            input[type="number"] {
+                padding: 10px;
+                font-size: 0.95em;
+            }
+
+            .normal-range {
+                font-size: 0.7em;
+            }
+
+            .result-container {
+                margin-top: 15px;
+                padding: 15px;
+            }
+
+            .result-label {
+                font-size: 1em;
+            }
+
+            .result-value {
+                font-size: 2.2em;
+            }
+
+            .result-unit {
+                font-size: 1em;
+            }
+
+            .alert-message {
+                font-size: 0.85em;
+                padding: 6px;
+            }
+
+            .formula {
+                margin-top: 12px;
+                padding: 12px;
+            }
+
+            .formula-title {
+                font-size: 0.85em;
+            }
+
+            .formula-text {
+                font-size: 0.75em;
+            }
+
+            .disclaimer {
+                margin-top: 12px;
+                padding: 10px;
+                font-size: 0.7em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DO₂ 計算機</h1>
+        <p class="subtitle">酸素供給量（Oxygen Delivery）計算アプリ</p>
+
+        <div class="input-group">
+            <label for="hb">ヘモグロビン (Hb)</label>
+            <div class="input-wrapper">
+                <input type="number" id="hb" step="0.1" min="0" max="25" value="12.0">
+                <span class="unit">g/dL</span>
+            </div>
+            <input type="range" id="hbSlider" min="3" max="18" step="0.1" value="12.0">
+            <div class="normal-range">正常値: 12-16 g/dL</div>
+        </div>
+
+        <div class="input-group">
+            <label for="sao2">動脈血酸素飽和度 (SaO₂)</label>
+            <div class="input-wrapper">
+                <input type="number" id="sao2" step="0.1" min="0" max="100" value="100.0">
+                <span class="unit">%</span>
+            </div>
+            <input type="range" id="sao2Slider" min="60" max="100" step="0.1" value="100.0">
+            <div class="normal-range">正常値: 95-100 %</div>
+        </div>
+
+        <div class="input-group">
+            <label for="co">心拍出量 (CO)</label>
+            <div class="input-wrapper">
+                <input type="number" id="co" step="0.1" min="0" max="20" value="5.0">
+                <span class="unit">L/min</span>
+            </div>
+            <input type="range" id="coSlider" min="0" max="10" step="0.1" value="5.0">
+            <div class="normal-range">正常値: 4-8 L/min</div>
+        </div>
+
+        <div id="result" class="result-container">
+            <div class="result-label">酸素供給量 (DO₂)</div>
+            <div class="result-value" id="do2Value">-</div>
+            <div class="result-unit">mL/min</div>
+            <div class="alert-message" id="alertMessage"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // 初期計算
+        window.addEventListener('DOMContentLoaded', calculateDO2);
+
+        // 数値入力とスライダーの同期
+        const hbInput = document.getElementById('hb');
+        const hbSlider = document.getElementById('hbSlider');
+        const sao2Input = document.getElementById('sao2');
+        const sao2Slider = document.getElementById('sao2Slider');
+        const coInput = document.getElementById('co');
+        const coSlider = document.getElementById('coSlider');
+
+        // Hbの同期
+        hbInput.addEventListener('input', function() {
+            hbSlider.value = this.value;
+            calculateDO2();
+        });
+        hbSlider.addEventListener('input', function() {
+            hbInput.value = this.value;
+            calculateDO2();
+        });
+
+        // SaO₂の同期
+        sao2Input.addEventListener('input', function() {
+            sao2Slider.value = this.value;
+            calculateDO2();
+        });
+        sao2Slider.addEventListener('input', function() {
+            sao2Input.value = this.value;
+            calculateDO2();
+        });
+
+        // COの同期
+        coInput.addEventListener('input', function() {
+            coSlider.value = this.value;
+            calculateDO2();
+        });
+        coSlider.addEventListener('input', function() {
+            coInput.value = this.value;
+            calculateDO2();
+        });
+
+        function calculateDO2() {
+            const hb = parseFloat(hbInput.value);
+            const sao2 = parseFloat(sao2Input.value);
+            const co = parseFloat(coInput.value);
+
+            // 入力チェック
+            if (isNaN(hb) || isNaN(sao2) || isNaN(co)) {
+                document.getElementById('result').classList.remove('show');
+                return;
+            }
+
+            if (hb <= 0 || sao2 <= 0 || co <= 0) {
+                document.getElementById('result').classList.remove('show');
+                return;
+            }
+
+            // CaO₂計算（動脈血酸素含有量）
+            // 簡略版: CaO₂ = Hb × 1.34 × SaO₂/100
+            // (PaO₂の溶解酸素は微量なので省略)
+            const cao2 = hb * 1.34 * (sao2 / 100);
+
+            // DO₂計算（酸素供給量）
+            // DO₂ = CO × CaO₂ × 10
+            const do2 = co * cao2 * 10;
+
+            // 結果表示
+            const resultContainer = document.getElementById('result');
+            const do2Value = document.getElementById('do2Value');
+            const alertMessage = document.getElementById('alertMessage');
+
+            do2Value.textContent = do2.toFixed(1);
+
+            // アラート判定
+            resultContainer.classList.remove('normal', 'yellow', 'red');
+            
+            if (do2 <= 400) {
+                resultContainer.classList.add('red');
+                alertMessage.textContent = '🚨 レッドアラート: 重度の酸素供給不足';
+            } else if (do2 <= 500) {
+                resultContainer.classList.add('yellow');
+                alertMessage.textContent = '⚠️ イエローアラート: 酸素供給低下';
+            } else {
+                resultContainer.classList.add('normal');
+                alertMessage.textContent = '✓ 正常範囲';
+            }
+
+            resultContainer.classList.add('show');
+        }
+    </script>
+</body>
+</html>
