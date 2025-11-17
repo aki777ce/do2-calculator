@@ -531,6 +531,11 @@
                     <div class="result-card-value" id="deltaDo2">-</div>
                     <div class="result-card-unit">mL/min</div>
                 </div>
+                <div class="result-card">
+                    <div class="result-card-title">酸素移動効率</div>
+                    <div class="result-card-value" id="transferEfficiency">-</div>
+                    <div class="result-card-unit">mL/min/L</div>
+                </div>
             </div>
 
             <div id="ecmoResult" class="result-container">
@@ -648,10 +653,12 @@
             const cvo2 = hb * 1.34 * (svo2 / 100);
             const cao2 = hb * 1.34 * (sao2 / 100);
             const deltaDo2 = flow * (cao2 - cvo2) * 10;
+            const transferPerLiter = deltaDo2 / flow; // 1L/minあたりの酸素移動量
 
             document.getElementById('cvo2').textContent = cvo2.toFixed(2);
             document.getElementById('cao2Ecmo').textContent = cao2.toFixed(2);
             document.getElementById('deltaDo2').textContent = deltaDo2.toFixed(1);
+            document.getElementById('transferEfficiency').textContent = transferPerLiter.toFixed(1);
 
             const resultContainer = document.getElementById('ecmoResult');
             const resultValue = document.getElementById('ecmoResultValue');
@@ -660,15 +667,16 @@
             resultValue.textContent = deltaDo2.toFixed(1);
             resultContainer.classList.remove('normal', 'yellow', 'red');
 
-            if (deltaDo2 < 100) {
+            // 評価基準: 1L/minあたり50以上
+            if (transferPerLiter < 40) {
                 resultContainer.classList.add('red');
-                alertMessage.textContent = '🚨 酸素移動量が低い';
-            } else if (deltaDo2 < 150) {
+                alertMessage.textContent = `🚨 酸素移動効率が低い (${transferPerLiter.toFixed(1)} mL/min/L)`;
+            } else if (transferPerLiter < 50) {
                 resultContainer.classList.add('yellow');
-                alertMessage.textContent = '⚠️ 酸素移動量やや低い';
+                alertMessage.textContent = `⚠️ 酸素移動効率やや低い (${transferPerLiter.toFixed(1)} mL/min/L)`;
             } else {
                 resultContainer.classList.add('normal');
-                alertMessage.textContent = '✓ 適切な酸素移動量';
+                alertMessage.textContent = `✓ 適切な酸素移動効率 (${transferPerLiter.toFixed(1)} mL/min/L)`;
             }
 
             resultContainer.classList.add('show');
