@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DO₂計算機 Advanced - 酸素需給バランス & ECMO</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 25px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 1.8em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-button:hover {
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .section-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="number"] {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .unit {
+            color: #666;
+            font-weight: 500;
+            min-width: 70px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: #e0e0e0;
+            outline: none;
+            margin-top: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .normal-range {
+            font-size: 0.75em;
+            color: #999;
+            margin-top: 3px;
+        }
+
+        .result-container {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-container.show {
+            display: block;
+        }
+
+        .result-container.normal {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .result-container.yellow {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #333;
+        }
+
+        .result-container.red {
+            background: linear-gradient(135deg, #ff0000 0%, #ff4444 100%);
+            color: white;
+        }
+
+        .result-label {
+            font-size: 1em;
+            margin-bottom: 8px;
+            opacity: 0.9;
+        }
+
+        .result-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .result-unit {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .alert-message {
+            margin-top: 10px;
+            font-size: 0.9em;
+            font-weight: 600;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .result-card {
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-card-title {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .result-card-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .result-card-unit {
+            font-size: 0.9em;
+            color: #999;
+        }
+
+        .balance-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            margin-top: 15px;
+        }
+
+        .balance-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .balance-status {
+            font-size: 1.1em;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .balance-status.good {
+            background: #38ef7d;
+            color: white;
+        }
+
+        .balance-status.warning {
+            background: #ffd700;
+            color: #333;
+        }
+
+        .balance-status.critical {
+            background: #ff4444;
+            color: white;
+        }
+
+        .formula {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            font-size: 0.85em;
+        }
+
+        .formula-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .formula-text {
+            color: #666;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 15px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 5px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.4em;
+            }
+
+            .tab-button {
+                padding: 8px 12px;
+                font-size: 0.85em;
+            }
+
+            .section {
+                padding: 15px;
+            }
+
+            .result-value {
+                font-size: 2em;
+            }
+
+            .result-card-value {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← 基本版に戻る</a>
+        
+        <h1>DO₂計算機 Advanced</h1>
+        <p class="subtitle">酸素需給バランス & ECMO酸素移動量</p>
+
+        <div class="nav-tabs">
+            <button class="tab-button active" onclick="switchTab('balance')">酸素需給バランス</button>
+            <button class="tab-button" onclick="switchTab('ecmo')">ECMO酸素移動量</button>
+        </div>
+
+        <!-- 酸素需給バランスタブ -->
+        <div id="balance-tab" class="tab-content active">
+            <div class="section">
+                <div class="section-title">🫀 全身循環パラメータ</div>
+                
+                <div class="input-group">
+                    <label for="hb1">ヘモグロビン (Hb)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="hb1" step="0.1" min="0" max="25" value="12.0">
+                        <span class="unit">g/dL</span>
+                    </div>
+                    <input type="range" id="hb1Slider" min="3" max="18" step="0.1" value="12.0">
+                    <div class="normal-range">正常値: 12-16 g/dL</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="sao21">動脈血酸素飽和度 (SaO₂)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="sao21" step="0.1" min="0" max="100" value="98.0">
+                        <span class="unit">%</span>
+                    </div>
+                    <input type="range" id="sao21Slider" min="60" max="100" step="0.1" value="98.0">
+                    <div class="normal-range">正常値: 95-100 %</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="co1">心拍出量 (CO)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="co1" step="0.1" min="0" max="20" value="5.0">
+                        <span class="unit">L/min</span>
+                    </div>
+                    <input type="range" id="co1Slider" min="0" max="10" step="0.1" value="5.0">
+                    <div class="normal-range">正常値: 4-8 L/min</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">💨 酸素消費量</div>
+                
+                <div class="input-group">
+                    <label for="vo2">酸素消費量 (VO₂)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="vo2" step="1" min="0" max="500" value="250">
+                        <span class="unit">mL/min</span>
+                    </div>
+                    <input type="range" id="vo2Slider" min="100" max="400" step="5" value="250">
+                    <div class="normal-range">正常値: 200-250 mL/min</div>
+                </div>
+            </div>
+
+            <div class="results-grid">
+                <div class="result-card">
+                    <div class="result-card-title">酸素供給量 (DO₂)</div>
+                    <div class="result-card-value" id="do2Balance">-</div>
+                    <div class="result-card-unit">mL/min</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-card-title">酸素消費量 (VO₂)</div>
+                    <div class="result-card-value" id="vo2Display">-</div>
+                    <div class="result-card-unit">mL/min</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-card-title">酸素抽出率 (O₂ER)</div>
+                    <div class="result-card-value" id="o2er">-</div>
+                    <div class="result-card-unit">%</div>
+                </div>
+            </div>
+
+            <div class="balance-indicator" id="balanceIndicator" style="display: none;">
+                <span class="balance-label">酸素需給バランス</span>
+                <span class="balance-status" id="balanceStatus">評価中</span>
+            </div>
+
+            <div class="formula">
+                <div class="formula-title">📐 計算式</div>
+                <div class="formula-text">
+                    CaO₂ = Hb × 1.34 × (SaO₂ / 100)<br>
+                    DO₂ = CO × CaO₂ × 10<br>
+                    O₂ER = (VO₂ / DO₂) × 100
+                </div>
+            </div>
+        </div>
+
+        <!-- ECMO酸素移動量タブ -->
+        <div id="ecmo-tab" class="tab-content">
+            <div class="section">
+                <div class="section-title">🔵 ECMO入口（静脈血）</div>
+                
+                <div class="input-group">
+                    <label for="hb2">ヘモグロビン (Hb)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="hb2" step="0.1" min="0" max="25" value="12.0">
+                        <span class="unit">g/dL</span>
+                    </div>
+                    <input type="range" id="hb2Slider" min="3" max="18" step="0.1" value="12.0">
+                </div>
+
+                <div class="input-group">
+                    <label for="svo2">静脈血酸素飽和度 (SvO₂)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="svo2" step="0.1" min="0" max="100" value="65.0">
+                        <span class="unit">%</span>
+                    </div>
+                    <input type="range" id="svo2Slider" min="30" max="80" step="0.1" value="65.0">
+                    <div class="normal-range">正常値: 65-75 %</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">🔴 ECMO出口（動脈血）</div>
+                
+                <div class="input-group">
+                    <label for="sao22">動脈血酸素飽和度 (SaO₂)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="sao22" step="0.1" min="0" max="100" value="98.0">
+                        <span class="unit">%</span>
+                    </div>
+                    <input type="range" id="sao22Slider" min="60" max="100" step="0.1" value="98.0">
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">⚙️ ECMO設定</div>
+                
+                <div class="input-group">
+                    <label for="ecmoFlow">ECMO流量</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="ecmoFlow" step="0.1" min="0" max="10" value="3.0">
+                        <span class="unit">L/min</span>
+                    </div>
+                    <input type="range" id="ecmoFlowSlider" min="0" max="7" step="0.1" value="3.0">
+                    <div class="normal-range">一般的: 2-5 L/min</div>
+                </div>
+            </div>
+
+            <div class="results-grid">
+                <div class="result-card">
+                    <div class="result-card-title">入口酸素含有量 (CvO₂)</div>
+                    <div class="result-card-value" id="cvo2">-</div>
+                    <div class="result-card-unit">mL/dL</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-card-title">出口酸素含有量 (CaO₂)</div>
+                    <div class="result-card-value" id="cao2Ecmo">-</div>
+                    <div class="result-card-unit">mL/dL</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-card-title">酸素移動量 (ΔDO₂)</div>
+                    <div class="result-card-value" id="deltaDo2">-</div>
+                    <div class="result-card-unit">mL/min</div>
+                </div>
+            </div>
+
+            <div id="ecmoResult" class="result-container">
+                <div class="result-label">ECMO酸素移動量</div>
+                <div class="result-value" id="ecmoResultValue">-</div>
+                <div class="result-unit">mL/min</div>
+                <div class="alert-message" id="ecmoAlertMessage"></div>
+            </div>
+
+            <div class="formula">
+                <div class="formula-title">📐 計算式</div>
+                <div class="formula-text">
+                    CvO₂ = Hb × 1.34 × (SvO₂ / 100)<br>
+                    CaO₂ = Hb × 1.34 × (SaO₂ / 100)<br>
+                    ΔDO₂ = ECMO流量 × (CaO₂ - CvO₂) × 10
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // タブ切り替え
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        // 酸素需給バランス計算
+        const hb1Input = document.getElementById('hb1');
+        const hb1Slider = document.getElementById('hb1Slider');
+        const sao21Input = document.getElementById('sao21');
+        const sao21Slider = document.getElementById('sao21Slider');
+        const co1Input = document.getElementById('co1');
+        const co1Slider = document.getElementById('co1Slider');
+        const vo2Input = document.getElementById('vo2');
+        const vo2Slider = document.getElementById('vo2Slider');
+
+        // 同期処理
+        function syncInputs(input, slider, callback) {
+            input.addEventListener('input', function() {
+                slider.value = this.value;
+                callback();
+            });
+            slider.addEventListener('input', function() {
+                input.value = this.value;
+                callback();
+            });
+        }
+
+        syncInputs(hb1Input, hb1Slider, calculateBalance);
+        syncInputs(sao21Input, sao21Slider, calculateBalance);
+        syncInputs(co1Input, co1Slider, calculateBalance);
+        syncInputs(vo2Input, vo2Slider, calculateBalance);
+
+        function calculateBalance() {
+            const hb = parseFloat(hb1Input.value);
+            const sao2 = parseFloat(sao21Input.value);
+            const co = parseFloat(co1Input.value);
+            const vo2 = parseFloat(vo2Input.value);
+
+            if (isNaN(hb) || isNaN(sao2) || isNaN(co) || isNaN(vo2)) return;
+            if (hb <= 0 || sao2 <= 0 || co <= 0) return;
+
+            const cao2 = hb * 1.34 * (sao2 / 100);
+            const do2 = co * cao2 * 10;
+            const o2er = (vo2 / do2) * 100;
+
+            document.getElementById('do2Balance').textContent = do2.toFixed(1);
+            document.getElementById('vo2Display').textContent = vo2.toFixed(0);
+            document.getElementById('o2er').textContent = o2er.toFixed(1);
+
+            const balanceIndicator = document.getElementById('balanceIndicator');
+            const balanceStatus = document.getElementById('balanceStatus');
+            balanceIndicator.style.display = 'flex';
+
+            if (o2er < 25) {
+                balanceStatus.textContent = '✓ 良好';
+                balanceStatus.className = 'balance-status good';
+            } else if (o2er < 35) {
+                balanceStatus.textContent = '⚠️ 代償中';
+                balanceStatus.className = 'balance-status warning';
+            } else {
+                balanceStatus.textContent = '🚨 不足';
+                balanceStatus.className = 'balance-status critical';
+            }
+        }
+
+        // ECMO計算
+        const hb2Input = document.getElementById('hb2');
+        const hb2Slider = document.getElementById('hb2Slider');
+        const svo2Input = document.getElementById('svo2');
+        const svo2Slider = document.getElementById('svo2Slider');
+        const sao22Input = document.getElementById('sao22');
+        const sao22Slider = document.getElementById('sao22Slider');
+        const ecmoFlowInput = document.getElementById('ecmoFlow');
+        const ecmoFlowSlider = document.getElementById('ecmoFlowSlider');
+
+        syncInputs(hb2Input, hb2Slider, calculateECMO);
+        syncInputs(svo2Input, svo2Slider, calculateECMO);
+        syncInputs(sao22Input, sao22Slider, calculateECMO);
+        syncInputs(ecmoFlowInput, ecmoFlowSlider, calculateECMO);
+
+        function calculateECMO() {
+            const hb = parseFloat(hb2Input.value);
+            const svo2 = parseFloat(svo2Input.value);
+            const sao2 = parseFloat(sao22Input.value);
+            const flow = parseFloat(ecmoFlowInput.value);
+
+            if (isNaN(hb) || isNaN(svo2) || isNaN(sao2) || isNaN(flow)) return;
+            if (hb <= 0 || svo2 <= 0 || sao2 <= 0 || flow <= 0) return;
+
+            const cvo2 = hb * 1.34 * (svo2 / 100);
+            const cao2 = hb * 1.34 * (sao2 / 100);
+            const deltaDo2 = flow * (cao2 - cvo2) * 10;
+
+            document.getElementById('cvo2').textContent = cvo2.toFixed(2);
+            document.getElementById('cao2Ecmo').textContent = cao2.toFixed(2);
+            document.getElementById('deltaDo2').textContent = deltaDo2.toFixed(1);
+
+            const resultContainer = document.getElementById('ecmoResult');
+            const resultValue = document.getElementById('ecmoResultValue');
+            const alertMessage = document.getElementById('ecmoAlertMessage');
+
+            resultValue.textContent = deltaDo2.toFixed(1);
+            resultContainer.classList.remove('normal', 'yellow', 'red');
+
+            if (deltaDo2 < 100) {
+                resultContainer.classList.add('red');
+                alertMessage.textContent = '🚨 酸素移動量が低い';
+            } else if (deltaDo2 < 150) {
+                resultContainer.classList.add('yellow');
+                alertMessage.textContent = '⚠️ 酸素移動量やや低い';
+            } else {
+                resultContainer.classList.add('normal');
+                alertMessage.textContent = '✓ 適切な酸素移動量';
+            }
+
+            resultContainer.classList.add('show');
+        }
+
+        // 初期計算
+        window.addEventListener('DOMContentLoaded', function() {
+            calculateBalance();
+            calculateECMO();
+        });
+    </script>
+</body>
+</html>
